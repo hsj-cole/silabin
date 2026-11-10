@@ -44,6 +44,7 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
+body { overflow-x: hidden; }
 body {
   font-family: 'Nunito', sans-serif;
   background: linear-gradient(135deg, var(--bg-grad1) 0%, var(--bg) 50%, var(--bg-grad2) 100%);
@@ -430,6 +431,9 @@ body {
   width: 100%;
   max-width: 580px;
 }
+@media (max-width: 500px) {
+  .menu-buttons { grid-template-columns: repeat(2, 1fr); }
+}
 .menu-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px;
@@ -551,10 +555,22 @@ body {
 /* Sílaba oculta: muestra solo el icono de audio */
 #drive-syl-display.syl-hidden { color: transparent; text-shadow: none; background: var(--card-border); }
 #drive-syl-display.syl-hidden::after { content: '🔇'; color: var(--ink-soft); }
+/* ── Mayúsculas / minúsculas (botón del menú) ───────────────── */
+#case-btn { position:absolute; top:14px; left:14px; z-index:10; display:flex; align-items:center; gap:2px;
+  background:var(--white); border:none; border-radius:12px; padding:6px 8px; cursor:pointer;
+  box-shadow:var(--shadow-sm); font-family:'Fredoka One',cursive; font-size:1.05rem; line-height:1; transition:all .15s; }
+#case-btn span { padding:6px 9px; border-radius:8px; color:var(--ink-soft); }
+#case-btn span.on { background:var(--accent2); color:#fff; }
+body.lc .vowel-card, body.lc .car-con-label, body.lc .con-letter, body.lc .syl-bubble,
+body.lc #drive-syl-display, body.lc .sylword-syl-btn, body.lc .sylword-collected-chip, body.lc #sylword-target,
+body.lc .mem-card-front, body.lc #cs-word, body.lc #egg-syl-preview, body.lc #egg-target-display,
+body.lc .egg-con-btn, body.lc .egg-label, body.lc .frog-lily-syl, body.lc .frog-con-btn,
+body.lc .word-wagon, body.lc .lc-txt { text-transform: lowercase; }
 </style>
 
 <!-- MAIN MENU -->
 <div id="main-menu" class="screen active">
+  <button id="case-btn" type="button" onclick="toggleCase()" aria-pressed="false" title="Cambiar entre mayúsculas y minúsculas" aria-label="Cambiar entre mayúsculas y minúsculas"><span id="case-up" class="on">ABC</span><span id="case-lo">abc</span></button>
   <button id="fullscreen-btn" onclick="toggleFullscreen()" title="Pantalla completa" style="position:absolute;top:14px;right:14px;background:var(--white);border:none;border-radius:12px;padding:8px 12px;font-size:1.3rem;cursor:pointer;transition:all .15s;z-index:10;box-shadow:var(--shadow-sm);color:var(--accent2);">⛶</button>
   <div class="menu-header">
     <h1>🚗 Silabín</h1>
@@ -1038,7 +1054,7 @@ function startGame(con) {
   currentCon = con;
   score = 0;
   document.getElementById('score-pill').textContent = '⭐ 0';
-  document.getElementById('game-title').textContent = 'Sílabas con ' + conLabel(con);
+  document.getElementById('game-title').textContent = 'Sílabas con ' + cT(conLabel(con));
   showScreen('game');
   buildRoads();
 }
@@ -1266,6 +1282,24 @@ var driveGen = 0;           // generación: invalida callbacks de rondas anterio
 
 // Leer estado guardado
 try { driveShowText = localStorage.getItem('driveShowText') === '1'; } catch(e){}
+// ── Mayúsculas / minúsculas ────────────────────────────────
+var caseLower = false;
+try { caseLower = localStorage.getItem('silabinCase') === 'lower'; } catch(e){}
+function cT(t) { return caseLower ? String(t).toLowerCase() : t; }
+function applyCase() {
+  document.body.classList.toggle('lc', caseLower);
+  var up = document.getElementById('case-up'), lo = document.getElementById('case-lo'), b = document.getElementById('case-btn');
+  if (up) up.className = caseLower ? '' : 'on';
+  if (lo) lo.className = caseLower ? 'on' : '';
+  if (b) b.setAttribute('aria-pressed', caseLower ? 'true' : 'false');
+}
+function toggleCase() {
+  caseLower = !caseLower;
+  try { localStorage.setItem('silabinCase', caseLower ? 'lower' : 'upper'); } catch(e){}
+  applyCase();
+}
+applyCase();
+
 
 function driveToggleText(on) {
   driveShowText = on;
@@ -1337,7 +1371,7 @@ function startDriveMulti() {
   driveHadError = false;
   driveGen++;
   document.getElementById('drive-score').textContent = '⭐ 0';
-  var label = driveSelectedCons.length === 1 ? 'Conduce con ' + driveSelectedCons[0] : 'Conduce con ' + driveSelectedCons.join(', ');
+  var label = driveSelectedCons.length === 1 ? 'Conduce con ' + cT(driveSelectedCons[0]) : 'Conduce con ' + cT(driveSelectedCons.join(', '));
   document.getElementById('drive-title').textContent = label;
   document.getElementById('drive-syl-display').textContent = '--';
   applyDriveTextState();
@@ -1980,6 +2014,7 @@ function renderWordCollected() {
       ';display:flex;align-items:center;justify-content:center;' +
       'font-family:"Fredoka One",cursive;font-size:1.2rem;color:' +
       (done ? 'var(--ink)' : 'rgba(255,255,255,.2)') + ';transition:all .3s;';
+    box.className = 'lc-txt';
     box.textContent = done ? wordCollected[i] : ch;
     bar.appendChild(box);
   });
@@ -3755,7 +3790,7 @@ function startMemory() {
     var allSyls = [];
     memSelectedCons.forEach(function(c){ memSylsForCon(c).forEach(function(s){ allSyls.push(s); }); });
     var syls = shuffleArr(allSyls).slice(0, memPairs);
-    document.getElementById('mem-title').textContent = '🔤 Memoria · ' + memSelectedCons.join(', ');
+    document.getElementById('mem-title').textContent = '🔤 Memoria · ' + cT(memSelectedCons.join(', '));
     syls.forEach(function(syl, i) {
       pairs.push({id: 'a'+i, pairId: i, type: 'sil', value: syl});
       pairs.push({id: 'b'+i, pairId: i, type: 'sil', value: syl});
@@ -4078,7 +4113,7 @@ function luBuildRoad() {
 
   carDiv.innerHTML =
     '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">'
-    + '<div style="background:rgba(255,255,255,.95);border-radius:8px;padding:3px 8px;'
+    + '<div class="lc-txt" style="background:rgba(255,255,255,.95);border-radius:8px;padding:3px 8px;'
     +   'font-family:\'Fredoka One\',cursive;font-size:'+wordFontSize+'px;color:#1a1a2e;'
     +   'white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3);letter-spacing:2px;min-width:60px;text-align:center;">'
     +   luCurrentWord.s.join('·')
@@ -4786,7 +4821,7 @@ function csToggleWord() {
     <div style="font-family:'Fredoka One',cursive;font-size:1.05rem;color:var(--ink-soft);text-align:center;">
       Elige una consonante
     </div>
-    <div id="egg-consonant-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;width:100%;max-width:380px;">
+    <div id="egg-consonant-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:8px;width:100%;max-width:380px;">
       <!-- JS -->
     </div>
 
