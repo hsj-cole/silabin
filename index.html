@@ -3255,7 +3255,6 @@ var SYLWORD_BANK = [
   {s:['NO','TA'], e:'🎵', c:['N','T']},
   {s:['PE','RA'], e:'🍐', c:['P','R']},
   {s:['PI','NO'], e:'🌲', c:['P','N']},
-  {s:['PO','LO'], e:'🧊', c:['P','L']},
   {s:['PA','TO'], e:'🦆', c:['P','T']},
   {s:['PO','LLO'], e:'🍗', c:['P','LL']},
   {s:['RA','NA'], e:'🐸', c:['R','N']},
@@ -4056,6 +4055,16 @@ function luUpdateStartBtn() {
   var ok = pool.length >= 3;
   btn.disabled = !ok;
   btn.style.opacity = ok ? '1' : '.5';
+  var hint = document.getElementById('lu-hint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'lu-hint';
+    hint.style.cssText = 'margin-top:8px;font-size:.95rem;color:#2d2d4e;text-align:center;min-height:1.2em;';
+    btn.parentNode.insertBefore(hint, btn.nextSibling);
+  }
+  hint.textContent = (!ok && luSelectedCons.length > 0)
+    ? 'Hay pocas palabras con solo esas letras: elige alguna consonante más'
+    : '';
 }
 
 function luGetPool() {
@@ -4069,7 +4078,8 @@ function luGetPool() {
     if (luLevel === 'advanced') {
       return luSelectedCons.indexOf(w.c[0]) >= 0;
     }
-    return w.c.some(function(c){ return luSelectedCons.indexOf(c) >= 0; });
+    // todas las consonantes de la palabra deben estar seleccionadas
+    return w.c.every(function(c){ return luSelectedCons.indexOf(c) >= 0; });
   });
 }
 
